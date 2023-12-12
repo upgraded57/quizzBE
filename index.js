@@ -22,7 +22,7 @@ app.get("/", (req, res) => {
 
 // connect to db
 mongoose
-  .connect(process.env.MONGOOSE_URI, {
+  .connect(process.env.MONGODB_URI, {
     dbName: "Quizz",
   })
   .then(() => {
