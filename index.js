@@ -4,6 +4,7 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 const userRoutes = require("./routes/userRoutes");
 const questionRoutes = require("./routes/questionRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 
@@ -12,7 +13,8 @@ app.use(express.json());
 app.use(cors());
 
 // routes
-app.use("/api", userRoutes);
+app.use("/api", authRoutes);
+app.use("/users", userRoutes);
 app.use("/questions", questionRoutes);
 
 // API entry point
