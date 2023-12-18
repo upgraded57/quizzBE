@@ -9,7 +9,11 @@ const {
   deleteUser,
 } = require("../controllers/userController");
 
-const upload = multer({ dest: "./uploads/" });
+// const upload = multer({ dest: "./uploads/" });
+const storage = new multer.memoryStorage();
+const upload = multer({
+  storage,
+});
 
 // require authentication data
 const requireAuth = require("../middlewares/requireAuth");

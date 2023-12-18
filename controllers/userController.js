@@ -2,6 +2,15 @@ const mongoose = require("mongoose");
 const Users = require("../models/userModel");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
+// cloudinary
+const cloudinary = require("cloudinary").v2;
+
+// cloudinary config
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // GET all users
 const getUsers = async (req, res) => {
@@ -30,6 +39,7 @@ const getUser = async (req, res) => {
 // UPDATE user data
 const updateUser = async (req, res) => {
   const { id } = req.params;
+
   // check if user exists
   try {
     const foundUser = await Users.findById(id);
@@ -39,11 +49,6 @@ const updateUser = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error });
   }
-
-  // upload avatar
-  const newAvatar = req.file;
-
-  console.log(newAvatar);
 
   // verify jwt token id = params id
   try {
@@ -61,13 +66,29 @@ const updateUser = async (req, res) => {
     return res.status(500).json({ error: err });
   }
 
+  // define function to handle upload to cloudinary
+  async function handleUpload(file) {
+    const res = await cloudinary.uploader.upload(file, {
+      resource_type: "auto",
+    });
+    return res;
+  }
+
   // pick update data from request body
-  const { full_name, email, avatar, high_score, isAdmin, attempts } = req.body;
+  const { full_name, email, high_score, isAdmin, attempts } = req.body;
+  const newAvatar = req.file;
 
   // // send error if no update data is sent with request
-  // if (!full_name && !email && !avatar && !high_score && !isAdmin && !attempts) {
-  //   return res.status(400).json({ error: "No update data sent" });
-  // }
+  if (
+    !full_name &&
+    !email &&
+    !newAvatar &&
+    !high_score &&
+    !isAdmin &&
+    !attempts
+  ) {
+    return res.status(400).json({ error: "No update data sent" });
+  }
 
   // update user data in db
   try {
@@ -76,6 +97,20 @@ const updateUser = async (req, res) => {
       { ...req.body },
       { new: true }
     );
+
+    // upload avatar
+    if (newAvatar) {
+      try {
+        const b64 = Buffer.from(newAvatar.buffer).toString("base64");
+        let dataURI = "data:" + newAvatar.mimetype + ";base64," + b64;
+        const cldRes = await handleUpload(dataURI);
+
+        // Update the avatar
+        await Users.findByIdAndUpdate({ _id: id }, { avatar: cldRes.url });
+      } catch (error) {
+        res.status(500).json({ error });
+      }
+    }
 
     res
       .status(200)
