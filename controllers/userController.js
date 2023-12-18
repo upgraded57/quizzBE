@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Users = require("../models/userModel");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 // GET all users
@@ -26,4 +27,102 @@ const getUser = async (req, res) => {
   }
 };
 
-module.exports = { getUsers, getUser };
+// UPDATE user data
+const updateUser = async (req, res) => {
+  const { id } = req.params;
+  // check if user exists
+  try {
+    const foundUser = await Users.findById(id);
+    if (!foundUser) {
+      return res.status(400).json({ error: "No such user found!" });
+    }
+  } catch (error) {
+    res.status(500).json({ error });
+  }
+
+  // upload avatar
+  const newAvatar = req.file;
+
+  console.log(newAvatar);
+
+  // verify jwt token id = params id
+  try {
+    const requestHeaderData = jwt.verify(
+      req.headers.authorization.split(" ")[1],
+      process.env.JWT_TOKEN
+    );
+    const requesterId = requestHeaderData.id;
+    if (requesterId !== id) {
+      return res
+        .status(401)
+        .json({ error: "Cannot update another user's data" });
+    }
+  } catch (err) {
+    return res.status(500).json({ error: err });
+  }
+
+  // pick update data from request body
+  const { full_name, email, avatar, high_score, isAdmin, attempts } = req.body;
+
+  // // send error if no update data is sent with request
+  // if (!full_name && !email && !avatar && !high_score && !isAdmin && !attempts) {
+  //   return res.status(400).json({ error: "No update data sent" });
+  // }
+
+  // update user data in db
+  try {
+    const updatedUser = await Users.findByIdAndUpdate(
+      { _id: id },
+      { ...req.body },
+      { new: true }
+    );
+
+    res
+      .status(200)
+      .json({ message: "User updated successfully", user: updatedUser });
+  } catch (error) {
+    res.status(500).json({ error });
+  }
+};
+
+// DELETE  a user
+const deleteUser = async (req, res) => {
+  const { id } = req.params;
+
+  // verify jwt token id = params id
+  try {
+    const requestHeaderData = jwt.verify(
+      req.headers.authorization.split(" ")[1],
+      process.env.JWT_TOKEN
+    );
+    const requesterId = requestHeaderData.id;
+    if (requesterId !== id) {
+      return res
+        .status(401)
+        .json({ error: "Cannot update another user's data" });
+    }
+  } catch (err) {
+    return res.status(500).json({ error: err });
+  }
+
+  // check if user exists
+  try {
+    const foundUser = await Users.findById(id);
+    if (!foundUser) {
+      return res.status(400).json({ error: "No such user found!" });
+    }
+  } catch (error) {
+    res.status(500).json([error]);
+  }
+
+  try {
+    const deletedUser = await Users.findByIdAndDelete({ _id: id });
+    res
+      .status(200)
+      .json({ message: "User deleted successfully", user: deletedUser });
+  } catch (error) {
+    res.status(500).json({ error });
+  }
+};
+
+module.exports = { getUsers, getUser, updateUser, deleteUser };

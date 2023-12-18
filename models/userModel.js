@@ -14,15 +14,19 @@ const userSchema = new Schema(
     },
     avatar: {
       type: String,
+      default: "",
     },
     high_score: {
       type: Number,
+      default: 0,
     },
     isAdmin: {
       type: Boolean,
+      default: false,
     },
     attempts: {
       type: Number,
+      default: 0,
     },
   },
   { timestamps: true, collection: "users" }
